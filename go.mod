@@ -9,7 +9,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.300
 	github.com/bank-vaults/vault-sdk v0.9.0
 	github.com/hashicorp/vault/api v1.9.2
-	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.1
 	github.com/stretchr/testify v1.8.4
 	gocloud.dev v0.30.0
@@ -85,6 +84,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
