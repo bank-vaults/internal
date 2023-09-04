@@ -16,6 +16,8 @@ package injector
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"sync"
@@ -23,7 +25,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/bank-vaults/vault-sdk/vault"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 
 	"github.com/bank-vaults/internal/configuration"
@@ -52,12 +53,12 @@ type SecretInjector struct {
 	config       Config
 	client       *vault.Client
 	renewer      SecretRenewer
-	logger       logrus.FieldLogger
+	logger       *slog.Logger
 	transitCache map[string][]byte
 	secretCache  map[string]map[string]interface{}
 }
 
-func NewSecretInjector(config Config, client *vault.Client, renewer SecretRenewer, logger logrus.FieldLogger) SecretInjector {
+func NewSecretInjector(config Config, client *vault.Client, renewer SecretRenewer, logger *slog.Logger) SecretInjector {
 	return SecretInjector{
 		config:       config,
 		client:       client,
@@ -81,7 +82,7 @@ func (i *SecretInjector) FetchTransitSecrets(secrets []string) (map[string][]byt
 
 	out, err := i.client.Transit.DecryptBatch(i.config.TransitPath, i.config.TransitKeyID, secrets)
 	if err != nil {
-		i.logger.Errorln("failed to decrypt variable:", err)
+		i.logger.Error(fmt.Sprintf("failed to decrypt variable: %s", err))
 	}
 
 	i.mu.Lock()
@@ -143,7 +144,7 @@ func (i *SecretInjector) preprocessTransitSecrets(references *map[string]string,
 				return errors.Wrapf(err, "failed to decrypt secret: %s", sec)
 			}
 
-			i.logger.Errorln("failed to decrypt secret:", sec, err)
+			i.logger.Error(fmt.Sprintf("failed to decrypt secret: %s", err), slog.Any("secrets", sec))
 		}
 	}
 
@@ -250,7 +251,8 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 				if !i.config.IgnoreMissingSecrets {
 					return errors.Wrapf(err, "failed to decrypt variable: %s", name)
 				}
-				i.logger.Errorln("failed to decrypt variable:", name, err)
+
+				i.logger.Error(fmt.Sprintf("failed to decrypt variable: %s", err), slog.String("variable", name))
 
 				continue
 			}
@@ -300,10 +302,12 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 				return errors.Errorf("path not found: %s", valuePath)
 			}
 
-			i.logger.Warnf(
-				"Path not found: %s - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-				valuePath,
-				MissingSecretsAnnotation,
+			i.logger.Warn(
+				fmt.Sprintf(
+					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
+					MissingSecretsAnnotation,
+				),
+				slog.String("path", valuePath),
 			)
 
 			continue
@@ -360,10 +364,12 @@ func (i *SecretInjector) InjectSecretsFromVaultPath(paths string, inject SecretI
 				return errors.Errorf("path not found: %s", valuePath)
 			}
 
-			i.logger.Warnf(
-				"Path not found: %s - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-				valuePath,
-				MissingSecretsAnnotation,
+			i.logger.Warn(
+				fmt.Sprintf(
+					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
+					MissingSecretsAnnotation,
+				),
+				slog.String("path", valuePath),
 			)
 
 			continue
@@ -406,7 +412,7 @@ func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) 
 	}
 
 	if i.config.DaemonMode && secret != nil && secret.LeaseDuration > 0 {
-		i.logger.Infof("secret %s has a lease duration of %ds, starting renewal", path, secret.LeaseDuration)
+		i.logger.Info("secret has a lease duration, starting renewal", slog.String("path", path), slog.Int("lease-duration", secret.LeaseDuration))
 
 		err = i.renewer.Renew(path, secret)
 		if err != nil {
@@ -419,7 +425,7 @@ func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) 
 	}
 
 	for _, warning := range secret.Warnings {
-		i.logger.Warnf("%s: %s", path, warning)
+		i.logger.Warn(warning, slog.String("path", path))
 	}
 
 	v2Data, ok := secret.Data["data"]
@@ -429,14 +435,17 @@ func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) 
 		// Check if a given version of a path is destroyed
 		metadata := secret.Data["metadata"].(map[string]interface{}) //nolint:forcetypeassert
 		if metadata["destroyed"].(bool) {
-			i.logger.Warnln("version of secret has been permanently destroyed version:", versionOrData, "path:", path)
+			i.logger.Warn("version of secret has been permanently destroyed", slog.String("path", path), slog.String("version", versionOrData))
 		}
 
 		// Check if a given version of a path still exists
 		if deletionTime, ok := metadata["deletion_time"].(string); ok && deletionTime != "" {
-			i.logger.Warnln("cannot find data for path, given version has been deleted",
-				"path:", path, "version:", versionOrData,
-				"deletion_time", deletionTime)
+			i.logger.Warn(
+				"cannot find data for path, given version has been deleted",
+				slog.String("path", path),
+				slog.String("version", versionOrData),
+				slog.String("deletion-time", deletionTime),
+			)
 		}
 	} else {
 		secretData = cast.ToStringMap(secret.Data)

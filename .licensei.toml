@@ -4,32 +4,12 @@ approved = [
   "bsd-3-clause",
   "bsd-2-clause",
   "mpl-2.0",
-  "isc"
+  "isc",
 ]
 
 ignored = [
-  "github.com/aliyun/aliyun-oss-go-sdk", # Apache License 2.0.
-  "github.com/ghodss/yaml", # MIT
-  "sigs.k8s.io/yaml", # Forked from above
-  "github.com/gogo/protobuf", # 3-Clause BSD
-  "logur.dev/adapter/logrus", # MIT
-  "logur.dev/logur", # MIT
-  "emperror.dev/errors", # MIT
-
-  # Unsupported VCS
-  "gopkg.in/fsnotify.v1",
-  "gopkg.in/square/go-jose.v2", # Apache 2.0
-  "google.golang.org/grpc",
-  "google.golang.org/genproto",
-  "google.golang.org/api",
-  "google.golang.org/protobuf",
-  "cloud.google.com/go",
-  "cloud.google.com/go/storage",
-
-  "gomodules.xyz/orderedmap", # MIT
-  "github.com/form3tech-oss/jwt-go", # MIT
-  "gomodules.xyz/jsonpatch/v2", # Apache 2.0
-  "gomodules.xyz/jsonpatch/v3", # Apache 2.0
+  "google.golang.org/protobuf",     # BSD-3
+  "github.com/hashicorp/vault/api", # MPL
 ]
 
 [header]

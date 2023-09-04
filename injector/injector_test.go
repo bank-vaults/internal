@@ -16,6 +16,8 @@ package injector
 
 import (
 	"encoding/base64"
+	"io"
+	"log/slog"
 	"os"
 	"reflect"
 	"strings"
@@ -23,7 +25,6 @@ import (
 
 	"github.com/bank-vaults/vault-sdk/vault"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +81,7 @@ func TestSecretInjector(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	injector := NewSecretInjector(Config{}, client, nil, logrus.New())
+	injector := NewSecretInjector(Config{}, client, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
@@ -189,7 +190,7 @@ func TestSecretInjectorFromPath(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	injector := NewSecretInjector(Config{}, client, nil, logrus.New())
+	injector := NewSecretInjector(Config{}, client, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
