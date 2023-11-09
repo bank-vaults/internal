@@ -3,7 +3,7 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bank-vaults/internal/ci.yaml?branch=main&style=flat-square)](https://github.com/bank-vaults/internal/actions/workflows/ci.yaml?query=workflow%3ACI)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bank-vaults/vault-env/badge?style=flat-square)](https://api.securityscorecards.dev/projects/github.com/bank-vaults/internal)
 
-**Libraries used internally by Bank-Vaults components.**
+**Internal libraries used by Bank-Vaults components.**
 
 ## Development
 
@@ -12,6 +12,12 @@
 _Alternatively, install [Go](https://go.dev/dl/) on your computer then run `make deps` to install the rest of the dependencies._
 
 Make sure Docker is installed with Compose.
+
+Fetch required tools:
+
+```shell
+make deps
+```
 
 Run project dependencies:
 
@@ -37,13 +43,9 @@ Some linter violations can automatically be fixed:
 make fmt
 ```
 
-Once you are done either stop or tear down dependencies:
+Once you are done, you can tear down project dependencies:
 
 ```shell
-make stop
-
-# OR
-
 make down
 ```
 
