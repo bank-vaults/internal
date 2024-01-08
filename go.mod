@@ -7,7 +7,7 @@ require (
 	emperror.dev/errors v0.8.1
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/aws/aws-sdk-go v1.49.8
-	github.com/bank-vaults/vault-sdk v0.9.1
+	github.com/bank-vaults/vault-sdk v0.9.2
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/spf13/cast v1.6.0
 	github.com/stretchr/testify v1.8.4
@@ -87,8 +87,8 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/oauth2 v0.14.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
