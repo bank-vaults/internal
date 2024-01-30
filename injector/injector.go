@@ -446,11 +446,7 @@ func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) 
 
 		// Check if a given version of a path is destroyed
 		// Handle the case where "destroyed" key is not present or has an unexpected type.
-		destroyed, ok := metadata["destroyed"].(bool)
-		if !ok {
-			return nil, errors.New("destroyed key not found or has an unexpected type in metadata")
-		}
-
+		destroyed, _ := metadata["destroyed"].(bool)
 		if destroyed {
 			i.logger.Warn("version of secret has been permanently destroyed", slog.String("path", path), slog.String("version", versionOrData))
 		}
