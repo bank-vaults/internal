@@ -432,9 +432,22 @@ func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) 
 	if ok {
 		secretData = cast.ToStringMap(v2Data)
 
+		// Handle the case where "metadata" key is not present or is nil.
+		metadataRaw, ok := secret.Data["metadata"]
+		if metadataRaw == nil || !ok {
+			return nil, errors.New("metadata key not found or is nil in secret")
+		}
+
+		// Handle the case where the type assertion fails.
+		metadata, ok := metadataRaw.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("metadata has an unexpected type")
+		}
+
 		// Check if a given version of a path is destroyed
-		metadata := secret.Data["metadata"].(map[string]interface{}) //nolint:forcetypeassert
-		if metadata["destroyed"].(bool) {
+		// Handle the case where "destroyed" key is not present or has an unexpected type.
+		destroyed, _ := metadata["destroyed"].(bool)
+		if destroyed {
 			i.logger.Warn("version of secret has been permanently destroyed", slog.String("path", path), slog.String("version", versionOrData))
 		}
 
