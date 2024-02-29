@@ -1,7 +1,7 @@
 # Bank-Vaults internal libraries
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bank-vaults/internal/ci.yaml?branch=main&style=flat-square)](https://github.com/bank-vaults/internal/actions/workflows/ci.yaml?query=workflow%3ACI)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bank-vaults/vault-env/badge?style=flat-square)](https://api.securityscorecards.dev/projects/github.com/bank-vaults/internal)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bank-vaults/secret-init/badge?style=flat-square)](https://api.securityscorecards.dev/projects/github.com/bank-vaults/internal)
 
 **Internal libraries used by Bank-Vaults components.**
 

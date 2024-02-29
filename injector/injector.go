@@ -23,15 +23,12 @@ import (
 	"sync"
 
 	"emperror.dev/errors"
+	"github.com/bank-vaults/secrets-webhook/pkg/common"
 	"github.com/bank-vaults/vault-sdk/vault"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cast"
 
 	"github.com/bank-vaults/internal/configuration"
-)
-
-const (
-	MissingSecretsAnnotation = "vault.security.banzaicloud.io/vault-ignore-missing-secrets"
 )
 
 type SecretInjectorFunc func(key, value string)
@@ -305,7 +302,7 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 			i.logger.Warn(
 				fmt.Sprintf(
 					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-					MissingSecretsAnnotation,
+					common.VaultIgnoreMissingSecretsAnnotation,
 				),
 				slog.String("path", valuePath),
 			)
@@ -367,7 +364,7 @@ func (i *SecretInjector) InjectSecretsFromVaultPath(paths string, inject SecretI
 			i.logger.Warn(
 				fmt.Sprintf(
 					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-					MissingSecretsAnnotation,
+					common.VaultIgnoreMissingSecretsAnnotation,
 				),
 				slog.String("path", valuePath),
 			)
