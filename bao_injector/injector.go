@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package injector
+package bao_injector
 
 import (
 	"encoding/json"
@@ -24,17 +24,17 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/bank-vaults/secrets-webhook/pkg/common"
-	"github.com/bank-vaults/vault-sdk/vault"
-	vaultapi "github.com/hashicorp/vault/api"
+	baoapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cast"
 
 	"github.com/bank-vaults/internal/configuration"
+	bao "github.com/bank-vaults/vault-sdk/vault"
 )
 
 type SecretInjectorFunc func(key, value string)
 
 type SecretRenewer interface {
-	Renew(path string, secret *vaultapi.Secret) error
+	Renew(path string, secret *baoapi.Secret) error
 }
 
 type Config struct {
@@ -48,14 +48,14 @@ type Config struct {
 type SecretInjector struct {
 	mu           sync.RWMutex
 	config       Config
-	client       *vault.Client
+	client       *bao.Client
 	renewer      SecretRenewer
 	logger       *slog.Logger
 	transitCache map[string][]byte
 	secretCache  map[string]map[string]interface{}
 }
 
-func NewSecretInjector(config Config, client *vault.Client, renewer SecretRenewer, logger *slog.Logger) SecretInjector {
+func NewSecretInjector(config Config, client *bao.Client, renewer SecretRenewer, logger *slog.Logger) SecretInjector {
 	return SecretInjector{
 		config:       config,
 		client:       client,
@@ -66,7 +66,7 @@ func NewSecretInjector(config Config, client *vault.Client, renewer SecretRenewe
 	}
 }
 
-var inlineMutationRegex = regexp.MustCompile(`\${([>]{0,2}vault:.*?#*}?)}`)
+var inlineMutationRegex = regexp.MustCompile(`\${([>]{0,2}bao:.*?#*}?)}`)
 
 func (i *SecretInjector) FetchTransitSecrets(secrets []string) (map[string][]byte, error) {
 	if len(i.config.TransitKeyID) == 0 {
@@ -112,11 +112,11 @@ func (i *SecretInjector) preprocessTransitSecrets(references *map[string]string,
 	secretSet := map[string]bool{}
 
 	for _, value := range *references {
-		// decrypts value with Vault Transit Secret Engine
-		if HasInlineVaultDelimiters(value) {
-			for _, vaultSecretReference := range FindInlineVaultDelimiters(value) {
-				if i.client.Transit.IsEncrypted(vaultSecretReference[1]) {
-					secretSet[vaultSecretReference[1]] = true
+		// decrypts value with Bao Transit Secret Engine
+		if HasInlineBaoDelimiters(value) {
+			for _, baoSecretReference := range FindInlineBaoDelimiters(value) {
+				if i.client.Transit.IsEncrypted(baoSecretReference[1]) {
+					secretSet[baoSecretReference[1]] = true
 				}
 			}
 		} else if i.client.Transit.IsEncrypted(value) {
@@ -146,12 +146,12 @@ func (i *SecretInjector) preprocessTransitSecrets(references *map[string]string,
 	}
 
 	for name, value := range *references {
-		if HasInlineVaultDelimiters(value) {
+		if HasInlineBaoDelimiters(value) {
 			newValue := value
 			i.mu.RLock()
-			for _, vaultSecretReference := range FindInlineVaultDelimiters(value) {
-				if v, ok := i.transitCache[vaultSecretReference[0]]; ok {
-					newValue = strings.Replace(value, vaultSecretReference[0], string(v), -1)
+			for _, baoSecretReference := range FindInlineBaoDelimiters(value) {
+				if v, ok := i.transitCache[baoSecretReference[0]]; ok {
+					newValue = strings.Replace(value, baoSecretReference[0], string(v), -1)
 				}
 			}
 			i.mu.RUnlock()
@@ -181,21 +181,21 @@ func (i *SecretInjector) preprocessTransitSecrets(references *map[string]string,
 	return nil
 }
 
-func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, inject SecretInjectorFunc) error {
+func (i *SecretInjector) InjectSecretsFromBao(references map[string]string, inject SecretInjectorFunc) error {
 	err := i.preprocessTransitSecrets(&references, inject)
 	if err != nil && !i.config.IgnoreMissingSecrets {
 		return errors.Wrapf(err, "unable to preprocess transit secrets")
 	}
 
 	for name, value := range references {
-		if HasInlineVaultDelimiters(value) {
-			for _, vaultSecretReference := range FindInlineVaultDelimiters(value) {
-				mapData, err := i.GetDataFromVault(map[string]string{name: vaultSecretReference[1]})
+		if HasInlineBaoDelimiters(value) {
+			for _, baoSecretReference := range FindInlineBaoDelimiters(value) {
+				mapData, err := i.GetDataFromBao(map[string]string{name: baoSecretReference[1]})
 				if err != nil {
 					return err
 				}
 				for _, v := range mapData {
-					value = strings.Replace(value, vaultSecretReference[0], v, -1)
+					value = strings.Replace(value, baoSecretReference[0], v, -1)
 				}
 			}
 			inject(name, value)
@@ -204,31 +204,31 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 		}
 
 		var update bool
-		if strings.HasPrefix(value, ">>vault:") {
+		if strings.HasPrefix(value, ">>bao:") {
 			value = strings.TrimPrefix(value, ">>")
 			update = true
 		} else {
 			update = false
 		}
 
-		if !strings.HasPrefix(value, "vault:") {
+		if !strings.HasPrefix(value, "bao:") {
 			inject(name, value)
 
 			continue
 		}
 
-		valuePath := strings.TrimPrefix(value, "vault:")
+		valuePath := strings.TrimPrefix(value, "bao:")
 
-		// handle special case for vault:login env value
-		// namely pass through the VAULT_TOKEN received from the Vault login procedure
-		if name == "VAULT_TOKEN" && valuePath == "login" {
+		// handle special case for bao:login env value
+		// namely pass through the BAO_TOKEN received from the Bao login procedure
+		if name == "BAO_TOKEN" && valuePath == "login" {
 			value = i.client.RawClient().Token()
 			inject(name, value)
 
 			continue
 		}
 
-		// decrypts value with Vault Transit Secret Engine
+		// decrypts value with Bao Transit Secret Engine
 		if i.client.Transit.IsEncrypted(value) {
 			if len(i.config.TransitKeyID) == 0 {
 				return errors.Errorf("found encrypted variable, but transit key ID is empty: %s", name)
@@ -286,7 +286,7 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 
 		i.mu.RLock()
 		if data = i.secretCache[secretCacheKey]; data == nil {
-			data, err = i.readVaultPath(valuePath, versionOrData, update)
+			data, err = i.readBaoPath(valuePath, versionOrData, update)
 		}
 		i.mu.RUnlock()
 
@@ -319,7 +319,7 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 		if templater.IsGoTemplate(key) {
 			value, err := templater.Template(key, data)
 			if err != nil {
-				return errors.Wrapf(err, "failed to interpolate template key with vault data: %s", key)
+				return errors.Wrapf(err, "failed to interpolate template key with bao data: %s", key)
 			}
 			inject(name, value.String())
 		} else {
@@ -338,10 +338,10 @@ func (i *SecretInjector) InjectSecretsFromVault(references map[string]string, in
 	return nil
 }
 
-func (i *SecretInjector) InjectSecretsFromVaultPath(paths string, inject SecretInjectorFunc) error {
-	vaultPaths := strings.Split(paths, ",")
+func (i *SecretInjector) InjectSecretsFromBaoPath(paths string, inject SecretInjectorFunc) error {
+	baoPaths := strings.Split(paths, ",")
 
-	for _, path := range vaultPaths {
+	for _, path := range baoPaths {
 		split := strings.SplitN(path, "#", 2)
 		valuePath := split[0]
 
@@ -351,7 +351,7 @@ func (i *SecretInjector) InjectSecretsFromVaultPath(paths string, inject SecretI
 			version = split[1]
 		}
 
-		data, err := i.readVaultPath(valuePath, version, false)
+		data, err := i.readBaoPath(valuePath, version, false)
 		if err != nil {
 			return err
 		}
@@ -384,10 +384,10 @@ func (i *SecretInjector) InjectSecretsFromVaultPath(paths string, inject SecretI
 	return nil
 }
 
-func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) (map[string]interface{}, error) {
+func (i *SecretInjector) readBaoPath(path, versionOrData string, update bool) (map[string]interface{}, error) {
 	var secretData map[string]interface{}
 
-	var secret *vaultapi.Secret
+	var secret *baoapi.Secret
 	var err error
 
 	if update {
@@ -464,20 +464,20 @@ func (i *SecretInjector) readVaultPath(path, versionOrData string, update bool) 
 	return secretData, nil
 }
 
-func HasInlineVaultDelimiters(value string) bool {
-	return len(FindInlineVaultDelimiters(value)) > 0
+func HasInlineBaoDelimiters(value string) bool {
+	return len(FindInlineBaoDelimiters(value)) > 0
 }
 
-func FindInlineVaultDelimiters(value string) [][]string {
+func FindInlineBaoDelimiters(value string) [][]string {
 	return inlineMutationRegex.FindAllStringSubmatch(value, -1)
 }
 
-func (i *SecretInjector) GetDataFromVault(data map[string]string) (map[string]string, error) {
-	vaultData := make(map[string]string, len(data))
+func (i *SecretInjector) GetDataFromBao(data map[string]string) (map[string]string, error) {
+	baoData := make(map[string]string, len(data))
 
 	inject := func(key, value string) {
-		vaultData[key] = value
+		baoData[key] = value
 	}
 
-	return vaultData, i.InjectSecretsFromVault(data, inject)
+	return baoData, i.InjectSecretsFromBao(data, inject)
 }
