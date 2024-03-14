@@ -23,11 +23,11 @@ import (
 	"sync"
 
 	"emperror.dev/errors"
+	"github.com/bank-vaults/internal/configuration"
 	"github.com/bank-vaults/secrets-webhook/pkg/common"
 	bao "github.com/bank-vaults/vault-sdk/vault"
 	baoapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cast"
-
 )
 
 type SecretInjectorFunc func(key, value string)
