@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vault_injector
+package baoinjector
 
 import (
 	"encoding/base64"
@@ -23,8 +23,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bank-vaults/vault-sdk/vault"
-	vaultapi "github.com/hashicorp/vault/api"
+	bao "github.com/bank-vaults/vault-sdk/vault"
+	baoapi "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,23 +35,23 @@ func assertKeyDoesNotExist(t *testing.T, m map[string]string, k string) {
 }
 
 func TestSecretInjector(t *testing.T) {
-	if addr := os.Getenv("VAULT_ADDR"); addr == "" {
-		t.Skip("skipping test: no VAULT_ADDR environment variable is set")
+	if addr := os.Getenv("BAO_ADDR"); addr == "" {
+		t.Skip("skipping test: no BAO_ADDR environment variable is set")
 	}
 
 	if testing.Short() {
 		t.Skip("skipping integration test due to -short")
 	}
 
-	config := vaultapi.DefaultConfig()
+	config := baoapi.DefaultConfig()
 	if config.Error != nil {
 		assert.NoError(t, config.Error)
 	}
 
-	client, err := vault.NewClientFromConfig(config)
+	client, err := bao.NewClientFromConfig(config)
 	assert.NoError(t, err)
 
-	err = client.RawClient().Sys().Mount("transit", &vaultapi.MountInput{Type: "transit"})
+	err = client.RawClient().Sys().Mount("transit", &baoapi.MountInput{Type: "transit"})
 	assert.NoError(t, err)
 
 	_, err = client.RawClient().Logical().Write("transit/keys/mykey", nil)
@@ -64,13 +64,13 @@ func TestSecretInjector(t *testing.T) {
 
 	ciphertext := secret.Data["ciphertext"].(string) //nolint:forcetypeassert
 
-	_, err = client.RawClient().Logical().Write("secret/data/account", vault.NewData(0, map[string]interface{}{"username": "superusername1", "password": "secret1"}))
+	_, err = client.RawClient().Logical().Write("secret/data/account", bao.NewData(0, map[string]interface{}{"username": "superusername1", "password": "secret1"}))
 	assert.NoError(t, err)
 
-	_, err = client.RawClient().Logical().Write("secret/data/account", vault.NewData(1, map[string]interface{}{"username": "superusername", "password": "secret"}))
+	_, err = client.RawClient().Logical().Write("secret/data/account", bao.NewData(1, map[string]interface{}{"username": "superusername", "password": "secret"}))
 	assert.NoError(t, err)
 
-	err = client.RawClient().Sys().Mount("pki", &vaultapi.MountInput{Type: "pki"})
+	err = client.RawClient().Sys().Mount("pki", &baoapi.MountInput{Type: "pki"})
 	assert.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -90,14 +90,14 @@ func TestSecretInjector(t *testing.T) {
 		t.Parallel()
 
 		references := map[string]string{
-			"ACCOUNT_PASSWORD_1":              "vault:secret/data/account#password#1",
-			"ACCOUNT_PASSWORD":                "vault:secret/data/account#password",
-			"TRANSIT_SECRET":                  `>>vault:transit/decrypt/mykey#${.plaintext | b64dec}#{"ciphertext":"` + ciphertext + `"}`,
-			"ROOT_CERT":                       ">>vault:pki/root/generate/internal#certificate",
-			"ROOT_CERT_CACHED":                ">>vault:pki/root/generate/internal#certificate",
-			"INLINE_SECRET":                   "scheme://${vault:secret/data/account#username}:${vault:secret/data/account#password}@127.0.0.1:8080",
-			"INLINE_SECRET_EMBEDDED_TEMPLATE": "scheme://${vault:secret/data/account#username}:${vault:secret/data/account#${.password | urlquery}}@127.0.0.1:8080",
-			"INLINE_DYNAMIC_SECRET":           "${>>vault:pki/root/generate/internal#certificate}__${>>vault:pki/root/generate/internal#certificate}",
+			"ACCOUNT_PASSWORD_1":              "bao:secret/data/account#password#1",
+			"ACCOUNT_PASSWORD":                "bao:secret/data/account#password",
+			"TRANSIT_SECRET":                  `>>bao:transit/decrypt/mykey#${.plaintext | b64dec}#{"ciphertext":"` + ciphertext + `"}`,
+			"ROOT_CERT":                       ">>bao:pki/root/generate/internal#certificate",
+			"ROOT_CERT_CACHED":                ">>bao:pki/root/generate/internal#certificate",
+			"INLINE_SECRET":                   "scheme://${bao:secret/data/account#username}:${bao:secret/data/account#password}@127.0.0.1:8080",
+			"INLINE_SECRET_EMBEDDED_TEMPLATE": "scheme://${bao:secret/data/account#username}:${bao:secret/data/account#${.password | urlquery}}@127.0.0.1:8080",
+			"INLINE_DYNAMIC_SECRET":           "${>>bao:pki/root/generate/internal#certificate}__${>>bao:pki/root/generate/internal#certificate}",
 		}
 
 		results := map[string]string{}
@@ -106,7 +106,7 @@ func TestSecretInjector(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVault(references, injectFunc)
+		err := injector.InjectSecretsFromBao(references, injectFunc)
 		require.NoError(t, err)
 
 		// This tests caching of dynamic secrets in calls. We can't predict
@@ -134,7 +134,7 @@ func TestSecretInjector(t *testing.T) {
 		t.Parallel()
 
 		references := map[string]string{
-			"SECRET": "vault:secret/data/supersecret#password",
+			"SECRET": "bao:secret/data/supersecret#password",
 		}
 
 		results := map[string]string{}
@@ -143,7 +143,7 @@ func TestSecretInjector(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVault(references, injectFunc)
+		err := injector.InjectSecretsFromBao(references, injectFunc)
 		assert.EqualError(t, err, "path not found: secret/data/supersecret")
 	})
 
@@ -151,7 +151,7 @@ func TestSecretInjector(t *testing.T) {
 		t.Parallel()
 
 		references := map[string]string{
-			"SECRET": "vault:secret/get/data#data",
+			"SECRET": "bao:secret/get/data#data",
 		}
 
 		results := map[string]string{}
@@ -160,35 +160,35 @@ func TestSecretInjector(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVault(references, injectFunc)
+		err := injector.InjectSecretsFromBao(references, injectFunc)
 		assert.EqualError(t, err, "path not found: secret/get/data")
 	})
 }
 
 func TestSecretInjectorFromPath(t *testing.T) {
-	if addr := os.Getenv("VAULT_ADDR"); addr == "" {
-		t.Skip("skipping test: no VAULT_ADDR environment variable is set")
+	if addr := os.Getenv("BAO_ADDR"); addr == "" {
+		t.Skip("skipping test: no BAO_ADDR environment variable is set")
 	}
 
 	if testing.Short() {
 		t.Skip("skipping integration test due to -short")
 	}
 
-	config := vaultapi.DefaultConfig()
+	config := baoapi.DefaultConfig()
 	if config.Error != nil {
 		assert.NoError(t, config.Error)
 	}
 
-	client, err := vault.NewClientFromConfig(config)
+	client, err := bao.NewClientFromConfig(config)
 	assert.NoError(t, err)
 
-	_, err = client.RawClient().Logical().Write("secret/data/account1", vault.NewData(0, map[string]interface{}{"password": "secret", "password2": "secret1"}))
+	_, err = client.RawClient().Logical().Write("secret/data/account1", bao.NewData(0, map[string]interface{}{"password": "secret", "password2": "secret1"}))
 	assert.NoError(t, err)
 
-	_, err = client.RawClient().Logical().Write("secret/data/account1", vault.NewData(1, map[string]interface{}{"password": "secret", "password2": "secret2"}))
+	_, err = client.RawClient().Logical().Write("secret/data/account1", bao.NewData(1, map[string]interface{}{"password": "secret", "password2": "secret2"}))
 	assert.NoError(t, err)
 
-	_, err = client.RawClient().Logical().Write("secret/data/account2", vault.NewData(0, map[string]interface{}{"password3": "secret", "password4": "secret2"}))
+	_, err = client.RawClient().Logical().Write("secret/data/account2", bao.NewData(0, map[string]interface{}{"password3": "secret", "password4": "secret2"}))
 	assert.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -212,7 +212,7 @@ func TestSecretInjectorFromPath(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVaultPath(paths, injectFunc)
+		err := injector.InjectSecretsFromBaoPath(paths, injectFunc)
 		require.NoError(t, err)
 
 		assert.Equal(t, map[string]string{
@@ -233,7 +233,7 @@ func TestSecretInjectorFromPath(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVaultPath(paths, injectFunc)
+		err := injector.InjectSecretsFromBaoPath(paths, injectFunc)
 		require.NoError(t, err)
 
 		assert.Equal(t, map[string]string{
@@ -253,7 +253,7 @@ func TestSecretInjectorFromPath(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVaultPath(paths, injectFunc)
+		err := injector.InjectSecretsFromBaoPath(paths, injectFunc)
 		require.NoError(t, err)
 
 		assert.Equal(t, map[string]string{
@@ -275,7 +275,7 @@ func TestSecretInjectorFromPath(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVaultPath(paths, injectFunc)
+		err := injector.InjectSecretsFromBaoPath(paths, injectFunc)
 		require.NoError(t, err)
 
 		assert.Equal(t, map[string]string{
@@ -297,7 +297,7 @@ func TestSecretInjectorFromPath(t *testing.T) {
 			results[key] = value
 		}
 
-		err := injector.InjectSecretsFromVaultPath(paths, injectFunc)
+		err := injector.InjectSecretsFromBaoPath(paths, injectFunc)
 		assert.EqualError(t, err, "path not found: secret/data/doesnotexist")
 
 		assert.Equal(t, map[string]string{}, results)
@@ -322,26 +322,26 @@ func TestPaginate(t *testing.T) {
 		{
 			name:     "page by more values then exist",
 			pageSize: 100,
-			secrets:  []string{"vault:v1:aGVsbG8="},
-			want:     [][]string{{"vault:v1:aGVsbG8="}},
+			secrets:  []string{"bao:v1:aGVsbG8="},
+			want:     [][]string{{"bao:v1:aGVsbG8="}},
 		},
 		{
 			name:     "pagination works",
 			pageSize: 2,
-			secrets:  []string{"vault:v1:aGVsbG8=", "vault:v2:aGVsbG8=", "vault:v3:aGVsbG8=", "vault:v4:aGVsbG8="},
-			want:     [][]string{{"vault:v1:aGVsbG8=", "vault:v2:aGVsbG8="}, {"vault:v3:aGVsbG8=", "vault:v4:aGVsbG8="}},
+			secrets:  []string{"bao:v1:aGVsbG8=", "bao:v2:aGVsbG8=", "bao:v3:aGVsbG8=", "bao:v4:aGVsbG8="},
+			want:     [][]string{{"bao:v1:aGVsbG8=", "bao:v2:aGVsbG8="}, {"bao:v3:aGVsbG8=", "bao:v4:aGVsbG8="}},
 		},
 		{
 			name:     "pagination with remeinder",
 			pageSize: 3,
-			secrets:  []string{"vault:v1:aGVsbG8=", "vault:v2:aGVsbG8=", "vault:v3:aGVsbG8=", "vault:v4:aGVsbG8="},
-			want:     [][]string{{"vault:v1:aGVsbG8=", "vault:v2:aGVsbG8=", "vault:v3:aGVsbG8="}, {"vault:v4:aGVsbG8="}},
+			secrets:  []string{"bao:v1:aGVsbG8=", "bao:v2:aGVsbG8=", "bao:v3:aGVsbG8=", "bao:v4:aGVsbG8="},
+			want:     [][]string{{"bao:v1:aGVsbG8=", "bao:v2:aGVsbG8=", "bao:v3:aGVsbG8="}, {"bao:v4:aGVsbG8="}},
 		},
 		{
 			name:     "page size 1",
 			pageSize: 1,
-			secrets:  []string{"vault:v1:aGVsbG8=", "vault:v2:aGVsbG8=", "vault:v3:aGVsbG8=", "vault:v4:aGVsbG8="},
-			want:     [][]string{{"vault:v1:aGVsbG8="}, {"vault:v2:aGVsbG8="}, {"vault:v3:aGVsbG8="}, {"vault:v4:aGVsbG8="}},
+			secrets:  []string{"bao:v1:aGVsbG8=", "bao:v2:aGVsbG8=", "bao:v3:aGVsbG8=", "bao:v4:aGVsbG8="},
+			want:     [][]string{{"bao:v1:aGVsbG8="}, {"bao:v2:aGVsbG8="}, {"bao:v3:aGVsbG8="}, {"bao:v4:aGVsbG8="}},
 		},
 	}
 	for _, tt := range tests {
