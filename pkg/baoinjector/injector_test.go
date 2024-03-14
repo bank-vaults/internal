@@ -17,14 +17,12 @@ package baoinjector
 import (
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func assertKeyDoesNotExist(t *testing.T, m map[string]string, k string) {
-	_, hasKey := m[k]
-	assert.False(t, hasKey)
-}
+// func assertKeyDoesNotExist(t *testing.T, m map[string]string, k string) {
+// 	_, hasKey := m[k]
+// 	assert.False(t, hasKey)
+// }
 
 // Enable these tests once openbao has been released, and added to the ci as a service
 
