@@ -26,6 +26,8 @@
 
             services = {
               vault.enable = true;
+              # TODO: Add Bao once it's available in nixpkgs
+              # bao.enable = true;
             };
 
             pre-commit.hooks = {
@@ -49,6 +51,8 @@
             env = {
               VAULT_ADDR = "http://127.0.0.1:8200";
               VAULT_TOKEN = "227e1cce-6bf7-30bb-2d2a-acc854318caf";
+              BAO_ADDR = "http://127.0.0.1:8300";
+              BAO_TOKEN = "227e1cce-6bf7-30bb-2d2a-acc854318caf";
             };
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
