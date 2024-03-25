@@ -2,8 +2,6 @@ module github.com/bank-vaults/internal
 
 go 1.21.1
 
-toolchain go1.21.4
-
 require (
 	cloud.google.com/go/kms v1.15.8
 	emperror.dev/errors v0.8.1
