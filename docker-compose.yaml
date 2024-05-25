@@ -1,6 +1,6 @@
 services:
   vault:
-    container_name: secret-init-vault
+    container_name: internal-vault
     image: hashicorp/vault:1.14.1
     ports:
       - 127.0.0.1:8200:8200
@@ -11,7 +11,7 @@ services:
       VAULT_DEV_ROOT_TOKEN_ID: 227e1cce-6bf7-30bb-2d2a-acc854318caf
 
   bao:
-    container_name: secret-init-bao
+    container_name: internal-bao
     image: quay.io/openbao/openbao@sha256:a015ae0adb1af5b45b33632e29879ff87063d0878e9359584a50b2706e500e9a # 2.0.0-alpha20240329
     ports:
       - 127.0.0.1:8300:8200
