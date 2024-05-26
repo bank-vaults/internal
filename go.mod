@@ -3,7 +3,7 @@ module github.com/bank-vaults/internal
 go 1.21.1
 
 require (
-	cloud.google.com/go/kms v1.17.0
+	cloud.google.com/go/kms v1.17.1
 	emperror.dev/errors v0.8.1
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/aws/aws-sdk-go v1.53.5
