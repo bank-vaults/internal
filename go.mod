@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/kms v1.17.1
 	emperror.dev/errors v0.8.1
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/aws/aws-sdk-go v1.53.5
+	github.com/aws/aws-sdk-go v1.53.10
 	github.com/bank-vaults/vault-sdk v0.9.3
 	github.com/hashicorp/vault/api v1.14.0
 	github.com/spf13/cast v1.6.0
