@@ -9,6 +9,7 @@ approved = [
 
 ignored = [
   "google.golang.org/protobuf", # BSD-3
+  "github.com/gogo/protobuf", # BSD-3
   "github.com/hashicorp/vault/api", # Mozilla Public License 2.0
   "github.com/hashicorp/vault/api/auth/aws", # Mozilla Public License 2.0
   "github.com/hashicorp/vault/api/auth/azure", # Mozilla Public License 2.0
