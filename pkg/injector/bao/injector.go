@@ -302,7 +302,7 @@ func (i *SecretInjector) InjectSecretsFromBao(references map[string]string, inje
 			i.logger.Warn(
 				fmt.Sprintf(
 					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-					common.VaultIgnoreMissingSecretsAnnotation,
+					common.BaoIgnoreMissingSecretsAnnotation,
 				),
 				slog.String("path", valuePath),
 			)
@@ -364,7 +364,7 @@ func (i *SecretInjector) InjectSecretsFromBaoPath(paths string, inject SecretInj
 			i.logger.Warn(
 				fmt.Sprintf(
 					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-					common.VaultIgnoreMissingSecretsAnnotation,
+					common.BaoIgnoreMissingSecretsAnnotation,
 				),
 				slog.String("path", valuePath),
 			)
