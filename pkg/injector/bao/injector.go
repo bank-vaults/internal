@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"emperror.dev/errors"
-	"github.com/bank-vaults/secrets-webhook/pkg/common"
 	bao "github.com/bank-vaults/vault-sdk/vault"
 	baoapi "github.com/hashicorp/vault/api"
 	"github.com/spf13/cast"
@@ -298,14 +297,7 @@ func (i *SecretInjector) InjectSecretsFromBao(references map[string]string, inje
 			if !i.config.IgnoreMissingSecrets {
 				return errors.Errorf("path not found: %s", valuePath)
 			}
-
-			i.logger.Warn(
-				fmt.Sprintf(
-					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-					common.BaoIgnoreMissingSecretsAnnotation,
-				),
-				slog.String("path", valuePath),
-			)
+			i.logger.Warn(fmt.Sprintf("path: %s not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set", valuePath))
 
 			continue
 		}
@@ -360,14 +352,7 @@ func (i *SecretInjector) InjectSecretsFromBaoPath(paths string, inject SecretInj
 			if !i.config.IgnoreMissingSecrets {
 				return errors.Errorf("path not found: %s", valuePath)
 			}
-
-			i.logger.Warn(
-				fmt.Sprintf(
-					"path not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set (annotation: %s).",
-					common.BaoIgnoreMissingSecretsAnnotation,
-				),
-				slog.String("path", valuePath),
-			)
+			i.logger.Warn(fmt.Sprintf("path: %s not found - We couldn't find a secret path. This is not an error since missing secrets can be ignored according to the configuration you've set", valuePath))
 
 			continue
 		}
